@@ -17,6 +17,8 @@
 #ifndef __PITCHENV_H
 #define __PITCHENV_H
 
+#include "env.h"
+
 // Computation of the DX7 pitch envelope
 
 class PitchEnv {
@@ -25,16 +27,14 @@ class PitchEnv {
 
   // The rates and levels arrays are calibrated to match the Dx7 parameters
   // (ie, value 0..99).
-  void set(const int rates[4], const int levels[4]);
+  void set(const EnvParams &p);
 
   // Result is in Q24/octave
-  int32_t getsample();
-  void keydown(bool down);
+  int32_t getsample(const EnvParams &p);
+  void keydown(const EnvParams &p, bool down);
   void getPosition(char *step);
  private:
   static int unit_;
-  int rates_[4];
-  int levels_[4];
   int32_t level_;
   int targetlevel_;
   bool rising_;
@@ -43,7 +43,7 @@ class PitchEnv {
 
   bool down_;
 
-  void advance(int newix);
+  void advance(const EnvParams &p, int newix);
 };
 
 extern const uint8_t pitchenv_rate[];

@@ -24,6 +24,19 @@
 
 #define ACCURATE_ENVELOPE
 
+class EnvParams {
+public:
+  void update(const int r[4], const int l[4]) {
+    for (int i = 0; i < 4; i++) {
+        rates[i] = r[i];
+        levels[i] = l[i];
+    }
+  }
+
+  int rates[4];
+  int levels[4];
+};
+
 class Env {
  public:
 
@@ -31,20 +44,17 @@ class Env {
   // (ie, value 0..99). The outlevel parameter is calibrated in microsteps
   // (ie units of approx .023 dB), with 99 * 32 = nominal full scale. The
   // rate_scaling parameter is in qRate units (ie 0..63).
-  void init(const int rates[4], const int levels[4], int outlevel,
-      int rate_scaling);
+  void init(const EnvParams &p, int outlevel, int rate_scaling);
+  void update(const EnvParams &p, int outlevel, int rate_scaling);
 
-  void update(const int rates[4], const int levels[4], int outlevel,
-      int rate_scaling);
   // Result is in Q24/doubling log format. Also, result is subsampled
   // for every N samples.
   // A couple more things need to happen for this to be used as a gain
   // value. First, the # of outputs scaling needs to be applied. Also,
   // modulation.
   // Then, of course, log to linear.
-  int32_t getsample();
-
-  void keydown(bool down);
+  int32_t getsample(const EnvParams &p);
+  void keydown(const EnvParams &p, bool down);
   static int scaleoutlevel(int outlevel);
   void getPosition(char *step);
     
@@ -57,10 +67,6 @@ class Env {
   // if we are not using 44100.
   static uint32_t sr_multiplier;
 
-  int rates_[4];
-  int levels_[4];
-  int outlevel_;
-  int rate_scaling_;
   // Level is stored so that 2^24 is one doubling, ie 16 more bits than
   // the DX7 itself (fraction is stored in level rather than separate
   // counter)
@@ -73,9 +79,11 @@ class Env {
   int staticcount_;
 #endif
 
+  int outlevel_;
+  int rate_scaling_;
   bool down_;
 
-  void advance(int newix);
+  void advance(const EnvParams &p, int newix);
 };
 
 #endif  // __ENV_H

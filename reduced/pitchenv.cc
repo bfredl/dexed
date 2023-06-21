@@ -42,49 +42,45 @@ const int8_t pitchenv_tab[] = {
   82, 92, 103, 115, 127
 };
 
-void PitchEnv::set(const int r[4], const int l[4]) {
-  for (int i = 0; i < 4; i++) {
-    rates_[i] = r[i];
-    levels_[i] = l[i];
-  }
-  level_ = pitchenv_tab[l[3]] << 19;
+void PitchEnv::set(const EnvParams &p) {
+  level_ = pitchenv_tab[p.levels[3]] << 19;
   down_ = true;
-  advance(0);
+  advance(p, 0);
 }
 
-int32_t PitchEnv::getsample() {
+int32_t PitchEnv::getsample(const EnvParams &p) {
   if (ix_ < 3 || ((ix_ < 4) && !down_)) {
     if (rising_) {
       level_ += inc_;
       if (level_ >= targetlevel_) {
         level_ = targetlevel_;
-        advance(ix_ + 1);
+        advance(p, ix_ + 1);
       }
     } else {  // !rising
       level_ -= inc_;
       if (level_ <= targetlevel_) {
         level_ = targetlevel_;
-        advance(ix_ + 1);
+        advance(p, ix_ + 1);
       }
     }
   }
   return level_;
 }
 
-void PitchEnv::keydown(bool d) {
+void PitchEnv::keydown(const EnvParams &p, bool d) {
   if (down_ != d) {
     down_ = d;
-    advance(d ? 0 : 3);
+    advance(p, d ? 0 : 3);
   }
 }
 
-void PitchEnv::advance(int newix) {
+void PitchEnv::advance(const EnvParams &p, int newix) {
   ix_ = newix;
   if (ix_ < 4) {
-    int newlevel = levels_[ix_];
+    int newlevel = p.levels[ix_];
     targetlevel_ = pitchenv_tab[newlevel] << 19;
     rising_ = (targetlevel_ > level_);
-    inc_ = pitchenv_rate[rates_[ix_]] * unit_;
+    inc_ = pitchenv_rate[p.rates[ix_]] * unit_;
   }
 }
 

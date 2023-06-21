@@ -36,10 +36,28 @@ struct VoiceStatus {
     char pitchStep;
 };
 
+class Dx7Patch {
+  public:
+    const uint8_t *currentPatch;
+    EnvParams env_p[6];
+    EnvParams pitchenv_p;
+  
+    int pitchmoddepth;
+    int pitchmodsens;
+    int ampmoddepth;
+
+    int32_t ampmodsens[6];
+    int32_t opMode[6];
+
+    void update(const uint8_t patch[156]);
+    int32_t fb_shift;
+    int algorithm;
+};
+
 class Dx7Note {
 public:
     Dx7Note();
-    void init(const uint8_t patch[156], int midinote, int logfreq, int velocity);
+    void init(Dx7Patch &p, int midinote, int logfreq, int velocity);
     // Note: this _adds_ to the buffer. Interesting question whether it's
     // worth it...
     void compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay,
@@ -53,7 +71,7 @@ public:
     // keyup, that won't work.
     
     // PG:add the update
-    void update(const uint8_t patch[156], int midinote, int logFreq, int velocity);
+    void update(Dx7Patch &p, int midinote, int logFreq, int velocity);
     void updateBasePitches(int logFreq);
     void peekVoiceStatus(VoiceStatus &status);
     void transferState(Dx7Note& src);
@@ -72,16 +90,8 @@ private:
     PitchEnv pitchenv_;
     int32_t basepitch_[6];
     int32_t fb_buf_[2];
-    int32_t fb_shift_;
-    int32_t ampmodsens_[6];
-    int32_t opMode[6];
     
-    int ampmoddepth_;
-    int algorithm_;
-    int pitchmoddepth_;
-    int pitchmodsens_;
-    
-    const uint8_t *currentPatch;
+    const Dx7Patch *p;
     
 };
 

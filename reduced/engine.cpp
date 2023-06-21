@@ -58,7 +58,8 @@ int main(int argc, char **argv) {
     // fprintf(stderr, "prog %d: %s\n", i, dest[i]);
   }
 
-  Dx7Note note {};
+  Dx7Patch patch;
+  Dx7Note note;
   Lfo lfo;
 
   uint8_t data[161];
@@ -73,7 +74,8 @@ int main(int argc, char **argv) {
   fprintf(stderr, "pitchat: %d\n", pitch);
   // memcpy(data, init_voice, 155);
 
-  note.init(data, midinote, pitch, velo);
+  patch.update(data);
+  note.init(patch, midinote, pitch, velo);
   if (data[136] ) {
     note.oscSync();
   }

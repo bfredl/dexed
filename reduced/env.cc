@@ -48,25 +48,21 @@ void Env::init_sr(double sampleRate) {
     sr_multiplier = (44100.0 / sampleRate) * (1<<24);
 }
 
-void Env::init(const int r[4], const int l[4], int ol, int rate_scaling) {
-    for (int i = 0; i < 4; i++) {
-        rates_[i] = r[i];
-        levels_[i] = l[i];
-    }
+void Env::init(const EnvParams &p, int ol, int rate_scaling) {
     outlevel_ = ol;
     rate_scaling_ = rate_scaling;
     level_ = 0;
     down_ = true;
-    advance(0);
+    advance(p, 0);
 }
 
-int32_t Env::getsample() {
+int32_t Env::getsample(const EnvParams &p) {
 #ifdef ACCURATE_ENVELOPE
     if (staticcount_) {
         staticcount_ -= N;
         if (staticcount_ <= 0) {
             staticcount_ = 0;
-            advance(ix_ + 1);
+            advance(p, ix_ + 1);
         }
     }
 #endif
@@ -84,14 +80,14 @@ int32_t Env::getsample() {
             // TODO: should probably be more accurate when inc is large
             if (level_ >= targetlevel_) {
                 level_ = targetlevel_;
-                advance(ix_ + 1);
+                advance(p, ix_ + 1);
             }
         }
         else {  // !rising
             level_ -= inc_;
             if (level_ <= targetlevel_) {
                 level_ = targetlevel_;
-                advance(ix_ + 1);
+                advance(p, ix_ + 1);
             }
         }
     }
@@ -99,10 +95,10 @@ int32_t Env::getsample() {
     return level_;
 }
 
-void Env::keydown(bool d) {
+void Env::keydown(const EnvParams &p, bool d) {
     if (down_ != d) {
         down_ = d;
-        advance(d ? 0 : 3);
+        advance(p, d ? 0 : 3);
     }
 }
 
@@ -110,10 +106,10 @@ int Env::scaleoutlevel(int outlevel) {
     return outlevel >= 20 ? 28 + outlevel : levellut[outlevel];
 }
 
-void Env::advance(int newix) {
+void Env::advance(const EnvParams &p, int newix) {
     ix_ = newix;
     if (ix_ < 4) {
-        int newlevel = levels_[ix_];
+        int newlevel = p.levels[ix_];
         int actuallevel = scaleoutlevel(newlevel) >> 1;
         actuallevel = (actuallevel << 6) + outlevel_ - 4256;
         actuallevel = actuallevel < 16 ? 16 : actuallevel;
@@ -122,7 +118,7 @@ void Env::advance(int newix) {
         rising_ = (targetlevel_ > level_);
 
         // rate
-        int qrate = (rates_[ix_] * 41) >> 6;
+        int qrate = (p.rates[ix_] * 41) >> 6;
         qrate += rate_scaling_;
         qrate = min(qrate, 63);
 
@@ -131,7 +127,7 @@ void Env::advance(int newix) {
             // approximate number of samples at 44.100 kHz to achieve the time
             // empirically gathered using 2 TF1s, could probably use some double-checking
             // and cleanup, but it's pretty close for now.
-            int staticrate = rates_[ix_];
+            int staticrate = p.rates[ix_];
             staticrate += rate_scaling_; // needs to be checked, as well, but seems correct
             staticrate = min(staticrate, 99);
             staticcount_ = staticrate < 77 ? statics[staticrate] : 20 * (99 - staticrate);
@@ -150,21 +146,17 @@ void Env::advance(int newix) {
     }
 }
 
-void Env::update(const int r[4], const int l[4], int ol, int rate_scaling) {
-    for (int i = 0; i < 4; i++) {
-        rates_[i] = r[i];
-        levels_[i] = l[i];
-    }
+void Env::update(const EnvParams &p, int ol, int rate_scaling) {
     outlevel_ = ol;
     rate_scaling_ = rate_scaling;
     if ( down_ ) {
         // for now we simply reset ourselves at level 3
-        int newlevel = levels_[2];
+        int newlevel = p.levels[2];
         int actuallevel = scaleoutlevel(newlevel) >> 1;
         actuallevel = (actuallevel << 6) - 4256;
         actuallevel = actuallevel < 16 ? 16 : actuallevel;
         targetlevel_ = actuallevel << 16;
-        advance(2);
+        advance(p, 2);
     }
 }
 
@@ -173,12 +165,6 @@ void Env::getPosition(char *step) {
 }
 
 void Env::transfer(Env &src) {
-    for(int i=0;i<4;i++) {
-        rates_[i] = src.rates_[i];
-        levels_[i] = src.levels_[i];
-    }
-    outlevel_ = src.outlevel_;
-    rate_scaling_ = src.rate_scaling_;
     level_ = src.level_;
     targetlevel_ = src.targetlevel_;
     rising_= src.rising_;
