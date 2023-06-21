@@ -6,12 +6,14 @@
 #include "dx7note.h"
 #include "EngineMkI.h"
 #include "PluginData.h"
+#include "freqlut.h"
 
 void engine_init(void) {
   Exp2::init();
   Tanh::init();
   Sin::init();
-
+  Freqlut::init(44100);
+  PitchEnv::init(44100);
 }
 
 
@@ -40,7 +42,7 @@ int standardNoteToFreq(int note) {
 
 int main(int argc, char **argv) {
   engine_init();
-  if (argc < 2) return 1;
+  if (argc < 4) return 1;
 
   Controllers controllers;
   controller_prepare(&controllers);
@@ -62,17 +64,22 @@ int main(int argc, char **argv) {
   Dx7Note note {};
 
   uint8_t data[161];
-  //cart.unpackProgram(data, 1);
+  int num = 0;
+  sscanf(argv[2], "%d", &num);
+  cart.unpackProgram(data, num);
 
-  int velo = 127;
+  int velo = 100;
   int midinote = 60;
+  sscanf(argv[3], "%d", &midinote);
   int pitch = standardNoteToFreq(midinote);
+  fprintf(stderr, "pitchat: %d\n", pitch);
   // memcpy(data, init_voice, 155);
 
   note.init(data, midinote, pitch, velo);
   if (data[136] ) {
     note.oscSync();
   }
+  // note.update(data, midinote, pitch, velo);
 
   const int numSamples = N*4410;
   int16_t audiobuf[numSamples];
