@@ -14,6 +14,7 @@ void engine_init(void) {
   Sin::init();
   Freqlut::init(44100);
   PitchEnv::init(44100);
+  Env::init_sr(44100);
 }
 
 
@@ -85,6 +86,7 @@ int main(int argc, char **argv) {
   int16_t audiobuf[numSamples];
   for (int i = 0; i < numSamples; i += N) {
     int32_t computebuf[N];
+    memset(computebuf, 0, sizeof computebuf);
     note.compute(computebuf, 0, 0, &controllers);
     for (int j = 0; j < N; j++) {
         int val = computebuf[j] >> 4;
