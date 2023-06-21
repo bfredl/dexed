@@ -193,7 +193,7 @@ void Dx7Note::init(const uint8_t patch[156], int midinote, int logfreq, int velo
     mpePressure = 0;
 }
 
-void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, const Controllers *ctrls) {
+void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, const Controllers *ctrls) {
     // ==== PITCH ====
     uint32_t pmd = pitchmoddepth_ * lfo_delay;  // Q32
     int32_t senslfo = pitchmodsens_ * (lfo_val - (1 << 23));
@@ -204,29 +204,6 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, const Co
     int32_t pitch_mod = max(pmod_1, pmod_2);
     pitch_mod = pitchenv_.getsample() + (pitch_mod * (senslfo < 0 ? -1 : 1));
     
-    // ---- PITCH BEND ----
-    int pitchbend = ctrls->values_[kControllerPitch];
-    int32_t pb = (pitchbend - 0x2000);
-    if (pb != 0) {
-        if (ctrls->values_[kControllerPitchStep] == 0) {
-            if( pb >= 0 )
-                pb = ((float) (pb << 11)) * ((float) ctrls->values_[kControllerPitchRangeUp]) / 12.0;
-            else
-                pb = ((float) (pb << 11)) * ((float) ctrls->values_[kControllerPitchRangeDn]) / 12.0;
-        } else {
-            int stp = 12 / ctrls->values_[kControllerPitchStep];
-            pb = pb * stp / 8191;
-            pb = (pb * (8191 / stp)) << 11;
-        }
-    }
-
-    if( ctrls->mpeEnabled )
-    {
-        int d = ((float)( (mpePitchBend-0x2000) << 11 )) * ctrls->mpePitchBendRange / 12.0; 
-        // std::cout << mpePitchBend << " " << 0x2000 << " " << d << std::endl;
-        pb += d;
-    }
-
     
     int32_t pitch_base = pb + ctrls->masterTune;
     pitch_mod += pitch_base;

@@ -2,6 +2,7 @@
 
 #include "sin.h"
 #include "exp2.h"
+#include "lfo.h"
 #include "controllers.h"
 #include "dx7note.h"
 #include "EngineMkI.h"
@@ -20,12 +21,7 @@ void engine_init(void) {
 
 EngineMkI engineMkI;
 void controller_prepare(Controllers * controllers) {
-    controllers->values_[kControllerPitchRangeUp] = 3;
-    controllers->values_[kControllerPitchRangeDn] = 3;
-    controllers->values_[kControllerPitchStep] = 0;
     controllers->masterTune = 0;
-
-    controllers->values_[kControllerPitch] = 0x2000;
     controllers->modwheel_cc = 0;
     controllers->foot_cc = 0;
     controllers->breath_cc = 0;
@@ -63,6 +59,7 @@ int main(int argc, char **argv) {
   }
 
   Dx7Note note {};
+  Lfo lfo;
 
   uint8_t data[161];
   int num = 0;
@@ -80,6 +77,7 @@ int main(int argc, char **argv) {
   if (data[136] ) {
     note.oscSync();
   }
+  lfo.reset(data + 137);
   // note.update(data, midinote, pitch, velo);
 
   const int numSamples = N*4410;
@@ -87,8 +85,10 @@ int main(int argc, char **argv) {
   for (int i = 0; i < numSamples; i += N) {
     int32_t computebuf[N];
     memset(computebuf, 0, sizeof computebuf);
-    note.compute(computebuf, 0, 0, &controllers);
+    note.compute(computebuf, 0, 0, 0, &controllers);
     for (int j = 0; j < N; j++) {
+        int32_t lfovalue = lfo.getsample();
+        int32_t lfodelay = lfo.getdelay();
         int val = computebuf[j] >> 4;
         int clip_val = val < -(1 << 24) ? -0x8000 : val >= (1 << 24) ? 0x7fff : val >> 9;
         audiobuf[i+j] = clip_val;

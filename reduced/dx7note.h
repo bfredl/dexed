@@ -43,7 +43,7 @@ public:
     // Note: this _adds_ to the buffer. Interesting question whether it's
     // worth it...
     void compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay,
-                 const Controllers *ctrls);
+                 int pb, const Controllers *ctrls);
     
     void keyup();
     
@@ -75,8 +75,6 @@ private:
     int32_t fb_shift_;
     int32_t ampmodsens_[6];
     int32_t opMode[6];
-
-    uint8_t playingMidiNote; // We need this for scale aware pitch bend
     
     int ampmoddepth_;
     int algorithm_;

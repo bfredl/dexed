@@ -77,8 +77,6 @@ class Controllers {
     }
     
 public:
-    int values_[132];
-    
     char opSwitch[7];
     
     int amp_mod;
@@ -94,10 +92,6 @@ public:
 
     bool transpose12AsScale = true;
 
-    // MPE configuration. FIXME - make this switchable
-    bool mpeEnabled = true;
-    int mpePitchBendRange = 24;
-    
     FmMod wheel;
     FmMod foot;
     FmMod breath;
