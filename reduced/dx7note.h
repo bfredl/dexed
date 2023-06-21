@@ -85,8 +85,6 @@ private:
     
     const uint8_t *currentPatch;
     
-    int32_t noteLogFreq;
-    
 };
 
 #endif  // SYNTH_DX7NOTE_H_

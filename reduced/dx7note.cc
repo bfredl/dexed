@@ -35,12 +35,12 @@ const int32_t coarsemul[] = {
     81503396, 82323963, 83117622
 };
 
-int32_t Dx7Note::osc_freq(int logFreq, int mode, int coarse, int fine, int detune) {
+int32_t Dx7Note::osc_freq(int logFreq_in, int mode, int coarse, int fine, int detune) {
 
     // TODO: pitch randomization
     int32_t logfreq;
     if (mode == 0) {
-        logfreq = noteLogFreq;
+        logfreq = logFreq_in;
 
         // could use more precision, closer enough for now. those numbers comes from my DX7
         double detuneRatio = 0.0209 * exp(-0.396 * (((float)logfreq)/(1<<24))) / 7;
@@ -147,7 +147,6 @@ void Dx7Note::init(const uint8_t patch[156], int midinote, int logfreq, int velo
     int rates[4];
     int levels[4];
     
-    noteLogFreq = logfreq;
     
     for (int op = 0; op < 6; op++) {
         int off = op * 21;
@@ -171,7 +170,7 @@ void Dx7Note::init(const uint8_t patch[156], int midinote, int logfreq, int velo
         int coarse = patch[off + 18];
         int fine = patch[off + 19];
         int detune = patch[off + 20];
-        int32_t freq = osc_freq(midinote, mode, coarse, fine, detune);
+        int32_t freq = osc_freq(logfreq, mode, coarse, fine, detune);
         opMode[op] = mode;
         basepitch_[op] = freq;
         ampmodsens_[op] = ampmodsenstab[patch[off + 14] & 3];
@@ -280,7 +279,6 @@ void Dx7Note::keyup() {
 
 void Dx7Note::updateBasePitches(int logFreq)
 {
-    noteLogFreq = logFreq;
     for (int op = 0; op < 6; op++)
     {
         int off = op * 21;
@@ -288,7 +286,7 @@ void Dx7Note::updateBasePitches(int logFreq)
         int coarse = currentPatch[off + 18];
         int fine = currentPatch[off + 19];
         int detune = currentPatch[off + 20];
-        basepitch_[op] = osc_freq(playingMidiNote, mode, coarse, fine, detune);
+        basepitch_[op] = osc_freq(logFreq, mode, coarse, fine, detune);
     }
 }
 
