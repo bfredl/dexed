@@ -5,6 +5,7 @@
 #include "controllers.h"
 #include "dx7note.h"
 #include "EngineMkI.h"
+#include "PluginData.h"
 
 void engine_init(void) {
   Exp2::init();
@@ -37,27 +38,43 @@ int standardNoteToFreq(int note) {
     return base + step * note;
 }
 
-int main() {
+int main(int argc, char **argv) {
   engine_init();
+  if (argc < 2) return 1;
 
   Controllers controllers;
   controller_prepare(&controllers);
 
+  Cartridge cart;
+
+  uint8_t bufer[4104];
+  FILE *syx = fopen(argv[1], "rb");
+  int size = fread(bufer, 1, 4104, syx);
+  fprintf(stderr, "siz: %d\n", size);
+  fprintf(stderr, "lesa: %d\n", cart.load(bufer, size));
+
+  char dest[32][11];
+  cart.getProgramNames(dest);
+  for (int i = 0; i <32; i++) {
+    // fprintf(stderr, "prog %d: %s\n", i, dest[i]);
+  }
 
   Dx7Note note {};
 
   uint8_t data[161];
+  //cart.unpackProgram(data, 1);
 
   int velo = 127;
-  int midinote = 64;
+  int midinote = 60;
   int pitch = standardNoteToFreq(midinote);
+  // memcpy(data, init_voice, 155);
 
   note.init(data, midinote, pitch, velo);
   if (data[136] ) {
     note.oscSync();
   }
 
-  const int numSamples = N*1000;
+  const int numSamples = N*4410;
   int16_t audiobuf[numSamples];
   for (int i = 0; i < numSamples; i += N) {
     int32_t computebuf[N];
