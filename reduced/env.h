@@ -72,7 +72,6 @@ class Env {
   // counter)
   int32_t level_;
   int targetlevel_;
-  bool rising_;
   int ix_;
   int inc_;
 #ifdef ACCURATE_ENVELOPE
@@ -82,6 +81,7 @@ class Env {
   int outlevel_;
   int rate_scaling_;
   bool down_;
+  bool rising_;
 
   void advance(const EnvParams &p, int newix);
 };

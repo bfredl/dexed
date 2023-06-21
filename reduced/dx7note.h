@@ -47,11 +47,11 @@ class Dx7Patch {
     int ampmoddepth;
 
     int32_t ampmodsens[6];
-    int32_t opMode[6];
+    uint8_t opMode[6];
+    uint8_t algorithm;
+    int32_t fb_shift;
 
     void update(const uint8_t patch[156]);
-    int32_t fb_shift;
-    int algorithm;
 };
 
 class Dx7Note {
@@ -79,10 +79,6 @@ public:
     void oscSync();
 
     int32_t osc_freq(int log_freq, int mode, int coarse, int fine, int detune);
-
-    int mpePitchBend = 8192;
-    int mpePressure = 0;
-    int mpeTimbre = 0;
     
 private:
     Env env_[6];

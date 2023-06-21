@@ -202,11 +202,6 @@ void Dx7Note::init(Dx7Patch &newp, int midinote, int logfreq, int velocity) {
         basepitch_[op] = freq;
     }
     pitchenv_.set(p->pitchenv_p);
-
-    // MPE default valeus
-    mpePitchBend = 8192;
-    mpeTimbre = 0;
-    mpePressure = 0;
 }
 
 void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, const Controllers *ctrls) {
