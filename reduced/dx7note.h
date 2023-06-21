@@ -73,7 +73,6 @@ public:
     // PG:add the update
     void update(Dx7Patch &p, int midinote, int logFreq, int velocity);
     void updateBasePitches(int logFreq);
-    void peekVoiceStatus(VoiceStatus &status);
     void transferState(Dx7Note& src);
     void transferSignal(Dx7Note &src);
     void oscSync();
@@ -82,8 +81,9 @@ public:
     
 private:
     Env env_[6];
-    FmOpParams params_[6];
     PitchEnv pitchenv_;
+    int32_t phase[6];
+    int32_t gain_out[6];
     int32_t basepitch_[6];
     int32_t fb_buf_[2];
     

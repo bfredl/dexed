@@ -171,8 +171,8 @@ int ScaleLevel(int midinote, int break_pt, int left_depth, int right_depth,
 
 Dx7Note::Dx7Note() {
     for(int op=0;op<6;op++) {
-        params_[op].phase = 0;
-        params_[op].gain_out = 0;
+        phase[op] = 0;
+        gain_out[op] = 0;
     }
 }
 
@@ -230,18 +230,22 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
     uint32_t amod_3 = (ctrls->eg_mod+1) << 17;
     amd_mod = max((1<<24) - amod_3, amd_mod);
     
+    FmOpParams params[6];
     // ==== OP RENDER ====
     for (int op = 0; op < 6; op++) {
+        params[op].phase = phase[op];
+        params[op].gain_out = gain_out[op];
         if ( ctrls->opSwitch[op] == '0' )  {
             env_[op].getsample(p->env_p[op]); // advance the envelop even if it is not playing
-            params_[op].level_in = 0;
+            params[op].level_in = 0;
+            params[op].freq = 0;
         } else {
             //int32_t gain = pow(2, 10 + level * (1.0 / (1 << 24)));
             
             if ( p->opMode[op] )
-                params_[op].freq = Freqlut::lookup(basepitch_[op] + pitch_base);
+                params[op].freq = Freqlut::lookup(basepitch_[op] + pitch_base);
             else
-                params_[op].freq = Freqlut::lookup(basepitch_[op] + pitch_mod);
+                params[op].freq = Freqlut::lookup(basepitch_[op] + pitch_mod);
             
             int32_t level = env_[op].getsample(p->env_p[op]);
             if (p->ampmodsens[op] != 0) {
@@ -252,10 +256,14 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
                 uint32_t ldiff = (uint32_t)(((uint64_t)level) * (((uint64_t)pt<<4)) >> 28);
                 level -= ldiff;
             }
-            params_[op].level_in = level;
+            params[op].level_in = level;
         }
     }
-    ctrls->core->render(buf, params_, p->algorithm, fb_buf_, p->fb_shift);
+    ctrls->core->render(buf, params, p->algorithm, fb_buf_, p->fb_shift);
+    for (int op = 0; op < 6; op++) {
+        phase[op] = params[op].phase;
+        gain_out[op] = params[op].gain_out;
+    }
 }
 
 void Dx7Note::keyup() {
@@ -308,35 +316,27 @@ void Dx7Note::update(Dx7Patch &newp, int midinote, int logFreq, int velocity) {
     // TODO: did we the pitchenv?
 }
 
-void Dx7Note::peekVoiceStatus(VoiceStatus &status) {
-    for(int i=0;i<6;i++) {
-        status.amp[i] = Exp2::lookup(params_[i].level_in - (14 * (1 << 24)));
-        env_[i].getPosition(&status.ampStep[i]);
-    }
-    pitchenv_.getPosition(&status.pitchStep);
-}
-
 /**
  * Used in monophonic mode to transfer voice state from different notes
  */
 void Dx7Note::transferState(Dx7Note &src) {
     for (int i=0;i<6;i++) {
         env_[i].transfer(src.env_[i]);
-        params_[i].gain_out = src.params_[i].gain_out;
-        params_[i].phase = src.params_[i].phase;
+        gain_out[i] = src.gain_out[i];
+        phase[i] = src.phase[i];
     }
 }
 
 void Dx7Note::transferSignal(Dx7Note &src) {
     for (int i=0;i<6;i++) {
-        params_[i].gain_out = src.params_[i].gain_out;
-        params_[i].phase = src.params_[i].phase;
+        gain_out[i] = src.gain_out[i];
+        phase[i] = src.phase[i];
     }
 }
 
 void Dx7Note::oscSync() {
     for (int i=0;i<6;i++) {
-        params_[i].gain_out = 0;
-        params_[i].phase = 0;
+        gain_out[i] = 0;
+        phase[i] = 0;
     }
 }
