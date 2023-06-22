@@ -130,6 +130,6 @@ void FmCore::render(int32_t *output, FmOpParams *params, int algorithm, int32_t 
         } else if (!add) {
             has_contents[outbus] = false;
         }
-        param.phase += param.freq << LG_N;
+        param.phase += param.freq * N;
     }
 }

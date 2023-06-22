@@ -152,7 +152,7 @@ inline int32_t mkiSin(int32_t phase, uint16_t env) {
 void EngineMkI::compute(int32_t *output, const int32_t *input,
                         int32_t phase0, int32_t freq,
                         int32_t gain1, int32_t gain2, bool add) {
-    int32_t dgain = (gain2 - gain1 + (N >> 1)) >> LG_N;
+    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
@@ -168,7 +168,7 @@ void EngineMkI::compute(int32_t *output, const int32_t *input,
 
 void EngineMkI::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
                              int32_t gain1, int32_t gain2, bool add) {
-    int32_t dgain = (gain2 - gain1 + (N >> 1)) >> LG_N;
+    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
@@ -184,7 +184,7 @@ void EngineMkI::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
 void EngineMkI::compute_fb(int32_t *output, int32_t phase0, int32_t freq,
                            int32_t gain1, int32_t gain2,
                            int32_t *fb_buf, int fb_shift, bool add) {
-    int32_t dgain = (gain2 - gain1 + (N >> 1)) >> LG_N;
+    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
@@ -220,7 +220,7 @@ void EngineMkI::compute_fb2(int32_t *output, FmOpParams *parms, int32_t gain01, 
     gain[0] = gain01;
     gain[1] = parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out;
 
-    dgain[0] = (gain02 - gain01 + (N >> 1)) >> LG_N;
+    dgain[0] = div_n(gain02 - gain01 + (N >> 1), INV_N);
     dgain[1] = (parms[1].gain_out - (parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out));
     
     for (int i = 0; i < N; i++) {
@@ -262,7 +262,7 @@ void EngineMkI::compute_fb3(int32_t *output, FmOpParams *parms, int32_t gain01, 
     gain[1] = parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out;
     gain[2] = parms[2].gain_out == 0 ? (ENV_MAX-1) : parms[2].gain_out;
 
-    dgain[0] = (gain02 - gain01 + (N >> 1)) >> LG_N;
+    dgain[0] = div_n(gain02 - gain01 + (N >> 1), INV_N);
     dgain[1] = (parms[1].gain_out - (parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out));
     dgain[2] = (parms[2].gain_out - (parms[2].gain_out == 0 ? (ENV_MAX-1) : parms[2].gain_out));
     
@@ -328,14 +328,14 @@ void EngineMkI::render(int32_t *output, FmOpParams *params, int algorithm, int32
                         // three operator feedback, process exception for ALGO 4
                         case 3 :
                             compute_fb3(outptr, params, gain1, gain2, fb_buf, min((feedback_shift+2), 16));
-                            params[1].phase += params[1].freq << LG_N; // hack, we already processed op-5 - op-4
-                            params[2].phase += params[2].freq << LG_N; // yuk yuk
+                            params[1].phase += params[1].freq * N; // hack, we already processed op-5 - op-4
+                            params[2].phase += params[2].freq * N; // yuk yuk
                             op += 2; // ignore the 2 other operators
                             break;
                         // two operator feedback, process exception for ALGO 6
                         case 5 :
                             compute_fb2(outptr, params, gain1, gain2, fb_buf, min((feedback_shift+2), 16));
-                            params[1].phase += params[1].freq << LG_N;  // yuk, hack, we already processed op-5
+                            params[1].phase += params[1].freq * N;  // yuk, hack, we already processed op-5
                             op++; // ignore next operator;
                             break;
                         case 31 :
@@ -358,7 +358,7 @@ void EngineMkI::render(int32_t *output, FmOpParams *params, int algorithm, int32
         } else if (!add) {
             has_contents[outbus] = false;
         }
-        param.phase += param.freq << LG_N;
+        param.phase += param.freq * N;
     }
 }
 

@@ -140,7 +140,7 @@ void Env::advance(const EnvParams &p, int newix) {
             staticcount_ = 0;
         }
 #endif
-        inc_ = (4 + (qrate & 3)) << (2 + LG_N + (qrate >> 2));
+        inc_ = N*((4 + (qrate & 3)) << (2 + (qrate >> 2)));
         // meh, this should be fixed elsewhere
         inc_ = (int)(((int64_t)inc_ * (int64_t)sr_multiplier) >> 24);
     }
