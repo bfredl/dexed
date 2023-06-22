@@ -56,10 +56,10 @@ void Env::init(const EnvParams &p, int ol, int rate_scaling) {
     advance(p, 0);
 }
 
-int32_t Env::getsample(const EnvParams &p) {
+int32_t Env::getsample(const EnvParams &p, int n) {
 #ifdef ACCURATE_ENVELOPE
     if (staticcount_) {
-        staticcount_ -= N;
+        staticcount_ -= n;
         if (staticcount_ <= 0) {
             staticcount_ = 0;
             advance(p, ix_ + 1);
@@ -76,7 +76,7 @@ int32_t Env::getsample(const EnvParams &p) {
             if (level_ < (jumptarget << 16)) {
                 level_ = jumptarget << 16;
             }
-            level_ += (((17 << 24) - level_) >> 24) * inc_;
+            level_ += (((17 << 24) - level_) >> 24) * inc_ * n;
             // TODO: should probably be more accurate when inc is large
             if (level_ >= targetlevel_) {
                 level_ = targetlevel_;
@@ -84,7 +84,7 @@ int32_t Env::getsample(const EnvParams &p) {
             }
         }
         else {  // !rising
-            level_ -= inc_;
+            level_ -= inc_ * n;
             if (level_ <= targetlevel_) {
                 level_ = targetlevel_;
                 advance(p, ix_ + 1);
@@ -140,7 +140,7 @@ void Env::advance(const EnvParams &p, int newix) {
             staticcount_ = 0;
         }
 #endif
-        inc_ = N*((4 + (qrate & 3)) << (2 + (qrate >> 2)));
+        inc_ = ((4 + (qrate & 3)) << (2 + (qrate >> 2)));
         // meh, this should be fixed elsewhere
         inc_ = (int)(((int64_t)inc_ * (int64_t)sr_multiplier) >> 24);
     }

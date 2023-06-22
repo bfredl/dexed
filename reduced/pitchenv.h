@@ -30,7 +30,7 @@ class PitchEnv {
   void set(const EnvParams &p);
 
   // Result is in Q24/octave
-  int32_t getsample(const EnvParams &p);
+  int32_t getsample(const EnvParams &p, int n);
   void keydown(const EnvParams &p, bool down);
   void getPosition(char *step);
  private:

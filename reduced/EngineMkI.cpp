@@ -45,7 +45,7 @@
 #endif
     __declspec(align(16)) const int zeros[N] = {0};
 #else
-    const int32_t __attribute__ ((aligned(16))) zeros[N] = {0};
+    const int32_t __attribute__ ((aligned(16))) zeros[MAX_N] = {0};
 #endif
 
 static const uint16_t NEGATIVE_BIT = 0x8000;
@@ -149,15 +149,14 @@ inline int32_t mkiSin(int32_t phase, uint16_t env) {
         return result << 13;
 }
 
-void EngineMkI::compute(int32_t *output, const int32_t *input,
+void EngineMkI::compute(int32_t *output, int n, const int32_t *input,
                         int32_t phase0, int32_t freq,
-                        int32_t gain1, int32_t gain2, bool add) {
-    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
+                        int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = mkiSin((phase+input[i]), gain);
         output[i] = y + adder[i];
@@ -166,14 +165,13 @@ void EngineMkI::compute(int32_t *output, const int32_t *input,
     
 }
 
-void EngineMkI::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
-                             int32_t gain1, int32_t gain2, bool add) {
-    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
+void EngineMkI::compute_pure(int32_t *output, int n, int32_t phase0, int32_t freq,
+                             int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = mkiSin(phase , gain);
         output[i] = y + adder[i];
@@ -181,17 +179,16 @@ void EngineMkI::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
     }
 }
 
-void EngineMkI::compute_fb(int32_t *output, int32_t phase0, int32_t freq,
-                           int32_t gain1, int32_t gain2,
+void EngineMkI::compute_fb(int32_t *output, int n, int32_t phase0, int32_t freq,
+                           int32_t gain1, int32_t gain2, int32_t dgain,
                            int32_t *fb_buf, int fb_shift, bool add) {
-    int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
     int32_t gain = gain1;
     int32_t phase = phase0;
     const int32_t *adder = add ? output : zeros;
     int32_t y0 = fb_buf[0];
     int32_t y = fb_buf[1];
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t scaled_fb = (y0 + y) >> (fb_shift + 1);
         y0 = y;
@@ -205,7 +202,7 @@ void EngineMkI::compute_fb(int32_t *output, int32_t phase0, int32_t freq,
 }
 
 // exclusively used for ALGO 6 with feedback
-void EngineMkI::compute_fb2(int32_t *output, FmOpParams *parms, int32_t gain01, int32_t gain02, int32_t *fb_buf, int fb_shift) {
+void EngineMkI::compute_fb2(int32_t *output, int n, FmOpParams *parms, int32_t gain01, int32_t gain02, int32_t dgain0, int32_t *fb_buf, int fb_shift) {
     int32_t dgain[2];
     int32_t gain[2];
     int32_t phase[2];
@@ -220,10 +217,10 @@ void EngineMkI::compute_fb2(int32_t *output, FmOpParams *parms, int32_t gain01, 
     gain[0] = gain01;
     gain[1] = parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out;
 
-    dgain[0] = div_n(gain02 - gain01 + (N >> 1), INV_N);
+    dgain[0] = dgain0;
     dgain[1] = (parms[1].gain_out - (parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out));
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
         int32_t scaled_fb = (y0 + y) >> (fb_shift + 1);
         
         // op 0
@@ -244,7 +241,7 @@ void EngineMkI::compute_fb2(int32_t *output, FmOpParams *parms, int32_t gain01, 
 }
 
 // exclusively used for ALGO 4 with feedback
-void EngineMkI::compute_fb3(int32_t *output, FmOpParams *parms, int32_t gain01, int32_t gain02, int32_t *fb_buf, int fb_shift) {
+void EngineMkI::compute_fb3(int32_t *output, int n, FmOpParams *parms, int32_t gain01, int32_t gain02, int32_t dgain0, int32_t *fb_buf, int fb_shift) {
     int32_t dgain[3];
     int32_t gain[3];
     int32_t phase[3];
@@ -262,12 +259,12 @@ void EngineMkI::compute_fb3(int32_t *output, FmOpParams *parms, int32_t gain01, 
     gain[1] = parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out;
     gain[2] = parms[2].gain_out == 0 ? (ENV_MAX-1) : parms[2].gain_out;
 
-    dgain[0] = div_n(gain02 - gain01 + (N >> 1), INV_N);
+    dgain[0] = dgain0;
     dgain[1] = (parms[1].gain_out - (parms[1].gain_out == 0 ? (ENV_MAX-1) : parms[1].gain_out));
     dgain[2] = (parms[2].gain_out - (parms[2].gain_out == 0 ? (ENV_MAX-1) : parms[2].gain_out));
     
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
         int32_t scaled_fb = (y0 + y) >> (fb_shift + 1);
         
         // op 0
@@ -292,11 +289,12 @@ void EngineMkI::compute_fb3(int32_t *output, FmOpParams *parms, int32_t gain01, 
     fb_buf[1] = y;
 }
 
-void EngineMkI::render(int32_t *output, FmOpParams *params, int algorithm, int32_t *fb_buf, int32_t feedback_shift) {
+void EngineMkI::render(int32_t *output, int n, FmOpParams *params, int algorithm, int32_t *fb_buf, int32_t feedback_shift) {
     const int kLevelThresh = ENV_MAX-100;
     FmAlgorithm alg = algorithms[algorithm];
     bool has_contents[3] = { true, false, false };
     bool fb_on = feedback_shift < 16;
+    const int inv_n = (1<<30)/n;
 
     switch(algorithm) {
         case 3 : case 5 :
@@ -314,6 +312,7 @@ void EngineMkI::render(int32_t *output, FmOpParams *params, int algorithm, int32
         int32_t gain1 = param.gain_out == 0 ? (ENV_MAX-1) : param.gain_out;
         int32_t gain2 = ENV_MAX-(param.level_in >> (28-ENV_BITDEPTH));
         param.gain_out = gain2;
+        int32_t dgain = div_n(gain2 - gain1 + (n >> 1), inv_n);
         
         if (gain1 <= kLevelThresh || gain2 <= kLevelThresh) {
             
@@ -327,38 +326,38 @@ void EngineMkI::render(int32_t *output, FmOpParams *params, int algorithm, int32
                     switch ( algorithm ) {
                         // three operator feedback, process exception for ALGO 4
                         case 3 :
-                            compute_fb3(outptr, params, gain1, gain2, fb_buf, min((feedback_shift+2), 16));
-                            params[1].phase += params[1].freq * N; // hack, we already processed op-5 - op-4
-                            params[2].phase += params[2].freq * N; // yuk yuk
+                            compute_fb3(outptr, n, params, gain1, gain2, dgain, fb_buf, min((feedback_shift+2), 16));
+                            params[1].phase += params[1].freq * n; // hack, we already processed op-5 - op-4
+                            params[2].phase += params[2].freq * n; // yuk yuk
                             op += 2; // ignore the 2 other operators
                             break;
                         // two operator feedback, process exception for ALGO 6
                         case 5 :
-                            compute_fb2(outptr, params, gain1, gain2, fb_buf, min((feedback_shift+2), 16));
-                            params[1].phase += params[1].freq * N;  // yuk, hack, we already processed op-5
+                            compute_fb2(outptr, n, params, gain1, gain2, dgain, fb_buf, min((feedback_shift+2), 16));
+                            params[1].phase += params[1].freq * n;  // yuk, hack, we already processed op-5
                             op++; // ignore next operator;
                             break;
                         case 31 :
                             // one operator feedback, process exception for ALGO 32
-                            compute_fb(outptr, param.phase, param.freq, gain1, gain2, fb_buf, min((feedback_shift+2), 16), add);
+                            compute_fb(outptr, n, param.phase, param.freq, gain1, gain2, dgain, fb_buf, min((feedback_shift+2), 16), add);
                             break;
                         default:
                             // one operator feedback, normal process
-                            compute_fb(outptr, param.phase, param.freq, gain1, gain2, fb_buf, feedback_shift, add);
+                            compute_fb(outptr, n, param.phase, param.freq, gain1, gain2, dgain, fb_buf, feedback_shift, add);
                             break;
                     }
                 } else {
-                    compute_pure(outptr, param.phase, param.freq, gain1, gain2, add);
+                    compute_pure(outptr, n, param.phase, param.freq, gain1, gain2, dgain, add);
                 }
             } else {
-                compute(outptr, buf_[inbus - 1].get(), param.phase, param.freq, gain1, gain2, add);
+                compute(outptr, n, buf_[inbus - 1].get(), param.phase, param.freq, gain1, gain2, dgain, add);
             }
             
             has_contents[outbus] = true;
         } else if (!add) {
             has_contents[outbus] = false;
         }
-        param.phase += param.freq * N;
+        param.phase += param.freq * n;
     }
 }
 

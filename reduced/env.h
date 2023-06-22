@@ -53,7 +53,7 @@ class Env {
   // value. First, the # of outputs scaling needs to be applied. Also,
   // modulation.
   // Then, of course, log to linear.
-  int32_t getsample(const EnvParams &p);
+  int32_t getsample(const EnvParams &p, int n);
   void keydown(const EnvParams &p, bool down);
   static int scaleoutlevel(int outlevel);
   void getPosition(char *step);

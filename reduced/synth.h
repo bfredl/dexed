@@ -26,8 +26,7 @@ typedef unsigned __int32 uint32_t;
 typedef __int16 SInt16;
 #endif
 
-const static int N = 64;
-const static int INV_N = ((int64_t)(1ll<<30))/N;
+const static int MAX_N = 128;
 
 #define div_n(base, inv_n) ((int)((((int64_t)(base))*(int64_t)(inv_n))>>30))
 

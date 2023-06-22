@@ -82,15 +82,17 @@ int main(int argc, char **argv) {
   lfo.reset(data + 137);
   // note.update(data, midinote, pitch, velo);
 
+  const int N = 37;
+
   const int numSamples = N*4410;
   int16_t audiobuf[numSamples];
   for (int i = 0; i < numSamples; i += N) {
     int32_t computebuf[N];
     memset(computebuf, 0, sizeof computebuf);
-    note.compute(computebuf, 0, 0, 0, &controllers);
+    note.compute(computebuf, N, 0, 0, 0, &controllers);
     for (int j = 0; j < N; j++) {
-        int32_t lfovalue = lfo.getsample();
-        int32_t lfodelay = lfo.getdelay();
+        int32_t lfovalue = lfo.getsample(N);
+        int32_t lfodelay = lfo.getdelay(N);
         int val = computebuf[j] >> 4;
         int clip_val = val < -(1 << 24) ? -0x8000 : val >= (1 << 24) ? 0x7fff : val >> 9;
         audiobuf[i+j] = clip_val;

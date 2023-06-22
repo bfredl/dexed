@@ -20,7 +20,7 @@
 int PitchEnv::unit_;
 
 void PitchEnv::init(double sample_rate) {
-  unit_ = N * (1 << 24) / (21.3 * sample_rate) + 0.5;
+  unit_ = (1 << 24) / (21.3 * sample_rate) + 0.5;
 }
 
 const uint8_t pitchenv_rate[] = {
@@ -48,16 +48,16 @@ void PitchEnv::set(const EnvParams &p) {
   advance(p, 0);
 }
 
-int32_t PitchEnv::getsample(const EnvParams &p) {
+int32_t PitchEnv::getsample(const EnvParams &p, int n) {
   if (ix_ < 3 || ((ix_ < 4) && !down_)) {
     if (rising_) {
-      level_ += inc_;
+      level_ += n*inc_;
       if (level_ >= targetlevel_) {
         level_ = targetlevel_;
         advance(p, ix_ + 1);
       }
     } else {  // !rising
-      level_ -= inc_;
+      level_ -= n*inc_;
       if (level_ <= targetlevel_) {
         level_ = targetlevel_;
         advance(p, ix_ + 1);

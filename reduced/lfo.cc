@@ -25,7 +25,7 @@ uint32_t Lfo::unit_;
 
 void Lfo::init(double sample_rate) {
     // constant is 1 << 32 / 15.5s / 11
-    Lfo::unit_ = (int32_t)(N * 25190424 / sample_rate + 0.5);
+    Lfo::unit_ = (int32_t)(25190424 / sample_rate + 0.5);
 }
 
 void Lfo::reset(const uint8_t params[6]) {
@@ -48,8 +48,8 @@ void Lfo::reset(const uint8_t params[6]) {
     sync_ = params[4] != 0;
 }
 
-int32_t Lfo::getsample() {
-    phase_ += delta_;
+int32_t Lfo::getsample(int n) {
+    phase_ += delta_ * n;
     int32_t x;
     switch (waveform_) {
         case 0:  // triangle
@@ -75,9 +75,9 @@ int32_t Lfo::getsample() {
     return 1 << 23;
 }
 
-int32_t Lfo::getdelay() {
+int32_t Lfo::getdelay(int n) {
     uint32_t delta = delaystate_ < (1U << 31) ? delayinc_ : delayinc2_;
-    uint64_t d = ((uint64_t)delaystate_) + delta;
+    uint64_t d = ((uint64_t)delaystate_) + delta*n;
     if (d > ~0u) {
         return 1 << 24;
     }

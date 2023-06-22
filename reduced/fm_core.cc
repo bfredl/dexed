@@ -90,9 +90,11 @@ void FmCore::dump() {
 #endif
 }
 
-void FmCore::render(int32_t *output, FmOpParams *params, int algorithm, int32_t *fb_buf, int feedback_shift) {
+void FmCore::render(int32_t *output, int n, FmOpParams *params, int algorithm, int32_t *fb_buf, int feedback_shift) {
     const int kLevelThresh = 1120;
     const FmAlgorithm alg = algorithms[algorithm];
+
+    const int inv_n = (1<<30)/n;
     bool has_contents[3] = { true, false, false };
     for (int op = 0; op < 6; op++) {
         int flags = alg.ops[op];
@@ -104,7 +106,8 @@ void FmCore::render(int32_t *output, FmOpParams *params, int algorithm, int32_t 
         int32_t gain1 = param.gain_out;
         int32_t gain2 = Exp2::lookup(param.level_in - (14 * (1 << 24)));
         param.gain_out = gain2;
-        
+        int32_t dgain = div_n(gain2 - gain1 + (n >> 1), inv_n);
+
         if (gain1 >= kLevelThresh || gain2 >= kLevelThresh) {
             if (!has_contents[outbus]) {
                 add = false;
@@ -113,23 +116,23 @@ void FmCore::render(int32_t *output, FmOpParams *params, int algorithm, int32_t 
                 // todo: more than one op in a feedback loop
                 if ((flags & 0xc0) == 0xc0 && feedback_shift < 16) {
                     // cout << op << " fb " << inbus << outbus << add << endl;
-                    FmOpKernel::compute_fb(outptr, param.phase, param.freq,
-                                           gain1, gain2,
+                    FmOpKernel::compute_fb(outptr, n, param.phase, param.freq,
+                                           gain1, gain2, dgain,
                                            fb_buf, feedback_shift, add);
                 } else {
                     // cout << op << " pure " << inbus << outbus << add << endl;
-                    FmOpKernel::compute_pure(outptr, param.phase, param.freq,
-                                             gain1, gain2, add);
+                    FmOpKernel::compute_pure(outptr, n, param.phase, param.freq,
+                                             gain1, gain2, dgain, add);
                 }
             } else {
                 // cout << op << " normal " << inbus << outbus << " " << param.freq << add << endl;
-                FmOpKernel::compute(outptr, buf_[inbus - 1].get(),
-                                    param.phase, param.freq, gain1, gain2, add);
+                FmOpKernel::compute(outptr, n, buf_[inbus - 1].get(),
+                                    param.phase, param.freq, gain1, gain2, dgain, add);
             }
             has_contents[outbus] = true;
         } else if (!add) {
             has_contents[outbus] = false;
         }
-        param.phase += param.freq * N;
+        param.phase += param.freq * n;
     }
 }

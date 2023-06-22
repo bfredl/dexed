@@ -204,7 +204,8 @@ void Dx7Note::init(Dx7Patch &newp, int midinote, int logfreq, int velocity) {
     pitchenv_.set(p->pitchenv_p);
 }
 
-void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, const Controllers *ctrls) {
+void Dx7Note::compute(int32_t *buf, int n, int32_t lfo_val, int32_t lfo_delay, int pb, const Controllers *ctrls) {
+    // assert(n <= MAX_N);
     // ==== PITCH ====
     uint32_t pmd = p->pitchmoddepth * lfo_delay;  // Q32
     int32_t senslfo = p->pitchmodsens * (lfo_val - (1 << 23));
@@ -213,7 +214,7 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
     int32_t pmod_2 = (int32_t)(((int64_t)ctrls->pitch_mod * (int64_t)senslfo) >> 14);
     pmod_2 = abs(pmod_2);
     int32_t pitch_mod = max(pmod_1, pmod_2);
-    pitch_mod = pitchenv_.getsample(p->pitchenv_p) + (pitch_mod * (senslfo < 0 ? -1 : 1));
+    pitch_mod = pitchenv_.getsample(p->pitchenv_p, n) + (pitch_mod * (senslfo < 0 ? -1 : 1));
     
     
     int32_t pitch_base = pb + ctrls->masterTune;
@@ -236,7 +237,7 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
         params[op].phase = phase[op];
         params[op].gain_out = gain_out[op];
         if ( ctrls->opSwitch[op] == '0' )  {
-            env_[op].getsample(p->env_p[op]); // advance the envelop even if it is not playing
+            env_[op].getsample(p->env_p[op], n); // advance the envelop even if it is not playing
             params[op].level_in = 0;
             params[op].freq = 0;
         } else {
@@ -247,7 +248,7 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
             else
                 params[op].freq = Freqlut::lookup(basepitch_[op] + pitch_mod);
             
-            int32_t level = env_[op].getsample(p->env_p[op]);
+            int32_t level = env_[op].getsample(p->env_p[op], n);
             if (p->ampmodsens[op] != 0) {
                 uint32_t sensamp = (uint32_t)(((uint64_t) amd_mod) * ((uint64_t) p->ampmodsens[op]) >> 24);
                 
@@ -259,7 +260,7 @@ void Dx7Note::compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay, int pb, 
             params[op].level_in = level;
         }
     }
-    ctrls->core->render(buf, params, p->algorithm, fb_buf_, p->fb_shift);
+    ctrls->core->render(buf, n, params, p->algorithm, fb_buf_, p->fb_shift);
     for (int op = 0; op < 6; op++) {
         phase[op] = params[op].phase;
         gain_out[op] = params[op].gain_out;

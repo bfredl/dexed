@@ -60,7 +60,7 @@ public:
     void init(Dx7Patch &p, int midinote, int logfreq, int velocity);
     // Note: this _adds_ to the buffer. Interesting question whether it's
     // worth it...
-    void compute(int32_t *buf, int32_t lfo_val, int32_t lfo_delay,
+    void compute(int32_t *buf, int n, int32_t lfo_val, int32_t lfo_delay,
                  int pb, const Controllers *ctrls);
     
     void keyup();

@@ -44,10 +44,9 @@ static bool hasNeon() {
 }
 #endif
 
-void FmOpKernel::compute(int32_t *output, const int32_t *input,
+void FmOpKernel::compute(int32_t *output, int n, const int32_t *input,
                          int32_t phase0, int32_t freq,
-                         int32_t gain1, int32_t gain2, bool add) {
-  int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
+                         int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
   int32_t gain = gain1;
   int32_t phase = phase0;
   if (hasNeon()) {
@@ -57,7 +56,7 @@ void FmOpKernel::compute(int32_t *output, const int32_t *input,
 #endif
   } else {
     if (add) {
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = Sin::lookup(phase + input[i]);
         int32_t y1 = ((int64_t)y * (int64_t)gain) >> 24;
@@ -65,7 +64,7 @@ void FmOpKernel::compute(int32_t *output, const int32_t *input,
         phase += freq;
       }
     } else {
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = Sin::lookup(phase + input[i]);
         int32_t y1 = ((int64_t)y * (int64_t)gain) >> 24;
@@ -76,9 +75,8 @@ void FmOpKernel::compute(int32_t *output, const int32_t *input,
   }
 }
 
-void FmOpKernel::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
-                              int32_t gain1, int32_t gain2, bool add) {
-  int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
+void FmOpKernel::compute_pure(int32_t *output, int n, int32_t phase0, int32_t freq,
+                              int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
   int32_t gain = gain1;
   int32_t phase = phase0;
   if (hasNeon()) {
@@ -88,7 +86,7 @@ void FmOpKernel::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
 #endif
   } else {
     if (add) {
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = Sin::lookup(phase);
         int32_t y1 = ((int64_t)y * (int64_t)gain) >> 24;
@@ -96,7 +94,7 @@ void FmOpKernel::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
         phase += freq;
       }
     } else {
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         gain += dgain;
         int32_t y = Sin::lookup(phase);
         int32_t y1 = ((int64_t)y * (int64_t)gain) >> 24;          
@@ -110,16 +108,15 @@ void FmOpKernel::compute_pure(int32_t *output, int32_t phase0, int32_t freq,
 #define noDOUBLE_ACCURACY
 #define HIGH_ACCURACY
 
-void FmOpKernel::compute_fb(int32_t *output, int32_t phase0, int32_t freq,
-                            int32_t gain1, int32_t gain2,
+void FmOpKernel::compute_fb(int32_t *output, int n, int32_t phase0, int32_t freq,
+                            int32_t gain1, int32_t gain2, int32_t dgain,
                             int32_t *fb_buf, int fb_shift, bool add) {
-  int32_t dgain = div_n(gain2 - gain1 + (N >> 1), INV_N);
   int32_t gain = gain1;
   int32_t phase = phase0;
   int32_t y0 = fb_buf[0];
   int32_t y = fb_buf[1];
   if (add) {
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       gain += dgain;
       int32_t scaled_fb = (y0 + y) >> (fb_shift + 1);
       y0 = y;
@@ -129,7 +126,7 @@ void FmOpKernel::compute_fb(int32_t *output, int32_t phase0, int32_t freq,
       phase += freq;
     }
   } else {
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       gain += dgain;
       int32_t scaled_fb = (y0 + y) >> (fb_shift + 1);
       y0 = y;

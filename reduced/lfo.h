@@ -22,10 +22,10 @@ class Lfo {
   void reset(const uint8_t params[6]);
 
   // result is 0..1 in Q24
-  int32_t getsample();
+  int32_t getsample(int n);
 
   // result is 0..1 in Q24
-  int32_t getdelay();
+  int32_t getdelay(int n);
 
   void keydown();
  private:
