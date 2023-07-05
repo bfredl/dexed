@@ -26,11 +26,7 @@
 #include "sin.h"
 #include "fm_op_kernel.h"
 
-#ifdef HAVE_NEONx
-static bool hasNeon() {
-  return true;
-  return (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0;
-}
+#ifdef HAVE_NEON
 
 extern "C"
 void neon_fm_kernel(const int *in, const int *busin, int *out, int count,
@@ -38,18 +34,14 @@ void neon_fm_kernel(const int *in, const int *busin, int *out, int count,
 
 const int32_t __attribute__ ((aligned(16))) zeros[N] = {0};
 
-#else
-static bool hasNeon() {
-  return false;
-}
 #endif
 
 void FmOpKernel::compute(int32_t *output, int n, const int32_t *input,
                          int32_t phase0, int32_t freq,
-                         int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
+                         int32_t gain1, int32_t gain2, int32_t dgain, bool add, bool neon) {
   int32_t gain = gain1;
   int32_t phase = phase0;
-  if (hasNeon()) {
+  if (neon) {
 #ifdef HAVE_NEON
     neon_fm_kernel(input, add ? output : zeros, output, N,
       phase0, freq, gain, dgain);
@@ -76,10 +68,10 @@ void FmOpKernel::compute(int32_t *output, int n, const int32_t *input,
 }
 
 void FmOpKernel::compute_pure(int32_t *output, int n, int32_t phase0, int32_t freq,
-                              int32_t gain1, int32_t gain2, int32_t dgain, bool add) {
+                              int32_t gain1, int32_t gain2, int32_t dgain, bool add, bool neon) {
   int32_t gain = gain1;
   int32_t phase = phase0;
-  if (hasNeon()) {
+  if (neon) {
 #ifdef HAVE_NEON
     neon_fm_kernel(zeros, add ? output : zeros, output, N,
       phase0, freq, gain, dgain);
@@ -110,7 +102,7 @@ void FmOpKernel::compute_pure(int32_t *output, int n, int32_t phase0, int32_t fr
 
 void FmOpKernel::compute_fb(int32_t *output, int n, int32_t phase0, int32_t freq,
                             int32_t gain1, int32_t gain2, int32_t dgain,
-                            int32_t *fb_buf, int fb_shift, bool add) {
+                            int32_t *fb_buf, int fb_shift, bool add, bool neon) {
   int32_t gain = gain1;
   int32_t phase = phase0;
   int32_t y0 = fb_buf[0];

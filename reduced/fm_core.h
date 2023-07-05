@@ -49,6 +49,7 @@ public:
     virtual ~FmCore() {};
     static void dump();
     virtual void render(int32_t *output, int n, FmOpParams *params, int algorithm, int32_t *fb_buf, int32_t feedback_gain);
+    bool neon = false;
 protected:
     AlignedBuf<int32_t, MAX_N>buf_[2];
     const static FmAlgorithm algorithms[32];

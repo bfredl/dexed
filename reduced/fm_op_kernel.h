@@ -32,16 +32,16 @@ class FmOpKernel {
   // This is the basic FM operator. No feedback.
   static void compute(int32_t *output, int n, const int32_t *input,
                       int32_t phase0, int32_t freq,
-                      int32_t gain1, int32_t gain2, int32_t dgain, bool add);
+                      int32_t gain1, int32_t gain2, int32_t dgain, bool add, bool neon);
   
   // This is a sine generator, no feedback.
   static void compute_pure(int32_t *output, int n, int32_t phase0, int32_t freq,
-                           int32_t gain1, int32_t gain2, int32_t dgain, bool add);
+                           int32_t gain1, int32_t gain2, int32_t dgain, bool add, bool neon);
 
   // One op with feedback, no add.
   static void compute_fb(int32_t *output, int n, int32_t phase0, int32_t freq,
                          int32_t gain1, int32_t gain2, int32_t dgain,
-                         int32_t *fb_buf, int fb_gain, bool add);
+                         int32_t *fb_buf, int fb_gain, bool add, bool neon);
 };
 
 #endif
